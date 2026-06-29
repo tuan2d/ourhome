@@ -3,10 +3,11 @@ import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator, Modal, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useApi, type ApiScheduleItem, type ApiTimetableItem, type ApiMember } from '../../services/api';
+import { useApi, type ApiTaskRow, type ApiTimetableItem, type ApiMember } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { CalendarPicker } from '../../components/CalendarPicker';
-import { RoleBadge } from '../../components/RoleBadge';
+import { AddTaskModal } from '../../components/AddTaskModal';
+import { DEFAULT_TAGS } from '../../constants/mockData';
 
 const WEEK_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const WEEK_DAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -34,17 +35,18 @@ export default function Schedule() {
     enabled: !!familyId,
   });
 
-  const allChildren = members.filter((m) => m.role === 'child');
+  // Member filter includes currentUser (parent can filter themselves too)
+  const filterableMembers = isParent ? members : members.filter((m) => m.id === currentUser?.id);
   const targetMemberIds = isParent
-    ? (selectedMemberIds.length > 0 ? selectedMemberIds : allChildren.map((m) => m.id))
+    ? (selectedMemberIds.length > 0 ? selectedMemberIds : members.map((m) => m.id))
     : [currentUser?.id ?? ''];
 
   const dateStr = formatDate(selectedDate);
   const dayLabel = WEEK_SHORT[selectedDate.getDay()];
 
-  const { data: schedules = [], isLoading: schedLoading } = useQuery<ApiScheduleItem[]>({
-    queryKey: ['schedules', dateStr],
-    queryFn: () => api.schedule.list(dateStr),
+  const { data: taskRows = [], isLoading: schedLoading } = useQuery<ApiTaskRow[]>({
+    queryKey: ['tasks'],
+    queryFn: () => api.task.list(),
     enabled: !!currentUser,
   });
 
@@ -59,9 +61,16 @@ export default function Schedule() {
     .filter((t) => targetMemberIds.includes(t.userId) && t.dayOfWeek === dayLabel)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  const createScheduleMutation = useMutation({
-    mutationFn: (data: Parameters<typeof api.schedule.create>[0]) => api.schedule.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['schedules', dateStr] }); setShowAdd(false); },
+  // Filter tasks for the selected date
+  const filteredTasks = taskRows.filter((row) => {
+    if (!targetMemberIds.includes(row.task.assignedTo)) return false;
+    if (!row.task.dueDate) return false;
+    return formatDate(new Date(row.task.dueDate)) === dateStr;
+  }).sort((a, b) => a.task.title.localeCompare(b.task.title));
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data: Parameters<typeof api.task.create>[0]) => api.task.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); setShowAdd(false); },
     onError: (e: Error) => Alert.alert('Lỗi', e.message),
   });
 
@@ -87,10 +96,10 @@ export default function Schedule() {
         </TouchableOpacity>
       </View>
 
-      {/* Member filter (parent only) */}
-      {isParent && allChildren.length > 0 && (
+      {/* Member filter — all members including currentUser */}
+      {filterableMembers.length > 1 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
-          {allChildren.map((m) => {
+          {filterableMembers.map((m) => {
             const active = selectedMemberIds.includes(m.id);
             return (
               <TouchableOpacity key={m.id} onPress={() => setSelectedMembers(active ? selectedMemberIds.filter((x) => x !== m.id) : [...selectedMemberIds, m.id])}
@@ -127,36 +136,39 @@ export default function Schedule() {
         {subTab === 'today' ? (
           <View className="mx-4 bg-surface border border-border rounded-3xl p-4">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xs font-bold text-muted tracking-wider">LỊCH BIỂU — {dateStr}</Text>
+              <Text className="text-xs font-bold text-muted tracking-wider">VIỆC CẦN LÀM — {dateStr}</Text>
             </View>
             {schedLoading ? (
               <ActivityIndicator color="#0EA5E9" style={{ paddingVertical: 24 }} />
-            ) : filteredSchedules.length === 0 ? (
+            ) : filteredTasks.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>📅</Text>
-                <Text style={{ fontSize: 14, color: '#8E9BAB' }}>Không có lịch nào</Text>
+                <Text style={{ fontSize: 14, color: '#8E9BAB' }}>Không có việc nào ngày này</Text>
               </View>
             ) : (
-              filteredSchedules
-                .sort((a, b) => a.time.localeCompare(b.time))
-                .map((item, i) => {
-                  const member = getMemberInfo(item.userId);
-                  return (
-                    <View key={item.id} style={{ flexDirection: 'row', paddingVertical: 12, borderBottomWidth: i < filteredSchedules.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1' }}>
-                      <View style={{ backgroundColor: '#E0F2FE', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, marginRight: 12, minWidth: 56, alignItems: 'center', alignSelf: 'flex-start' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#0EA5E9' }}>{item.time}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        {isParent && member && (
-                          <Text style={{ fontSize: 11, color: '#8E9BAB', marginBottom: 2 }}>{member.avatar} {member.name}</Text>
-                        )}
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#2D3A4A' }}>{item.title}</Text>
-                        {item.note && <Text style={{ fontSize: 12, color: '#8E9BAB', marginTop: 2 }}>{item.note}</Text>}
-                        {item.reminder && <Text style={{ fontSize: 11, color: '#F59E0B', marginTop: 2 }}>🔔 Nhắc nhở</Text>}
+              filteredTasks.map((row, i) => {
+                const member = getMemberInfo(row.task.assignedTo);
+                const done = row.task.status !== 'pending';
+                return (
+                  <View key={row.task.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: i < filteredTasks.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1', gap: 12 }}>
+                    <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: done ? '#0EA5E9' : '#EDE8E1', backgroundColor: done ? '#0EA5E9' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                      {done && <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>✓</Text>}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      {isParent && member && (
+                        <Text style={{ fontSize: 11, color: '#8E9BAB', marginBottom: 2 }}>{member.avatar} {member.name}</Text>
+                      )}
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: done ? '#B0BAC7' : '#2D3A4A', textDecorationLine: done ? 'line-through' : 'none' }}>{row.task.title}</Text>
+                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                        {row.task.points > 0 && <Text style={{ fontSize: 11, color: '#0EA5E9', fontWeight: '600' }}>+{row.task.points} điểm</Text>}
+                        {row.task.status === 'done' && <Text style={{ fontSize: 11, color: '#F59E0B' }}>⏳ Chờ duyệt</Text>}
+                        {row.task.status === 'approved' && <Text style={{ fontSize: 11, color: '#16A34A' }}>✅ Đã duyệt</Text>}
+                        {row.task.repeat && <Text style={{ fontSize: 10, color: '#8B5CF6', backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>🔁 {{ daily: 'Ngày', weekly: 'Tuần', monthly: 'Tháng' }[row.task.repeat] ?? row.task.repeat}</Text>}
                       </View>
                     </View>
-                  );
-                })
+                  </View>
+                );
+              })
             )}
           </View>
         ) : (
@@ -215,59 +227,65 @@ export default function Schedule() {
         </TouchableOpacity>
       </View>
 
-      <AddScheduleModal
-        visible={showAdd}
-        subTab={subTab}
-        defaultDate={dateStr}
-        defaultDayOfWeek={dayLabel}
-        members={isParent ? members.filter((m) => m.role === 'child') : currentUser ? [{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar }] : []}
-        currentUserId={currentUser?.id ?? ''}
-        isParent={isParent}
-        weekDays={WEEK_DAYS}
-        onClose={() => setShowAdd(false)}
-        onAddSchedule={(data) => createScheduleMutation.mutate(data)}
-        onAddTimetable={(data) => createTimetableMutation.mutate(data)}
-        loading={createScheduleMutation.isPending || createTimetableMutation.isPending}
-      />
+      {/* Lịch hôm nay: AddTaskModal với dueDate preset = selectedDate */}
+      {subTab === 'today' && (
+        <AddTaskModal
+          visible={showAdd}
+          availableTags={DEFAULT_TAGS}
+          assignableMembers={isParent ? members : currentUser ? [{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar }] : []}
+          defaultAssignees={isParent ? (selectedMemberIds.length > 0 ? selectedMemberIds : [currentUser?.id ?? '']) : [currentUser?.id ?? '']}
+          defaultDueDate={selectedDate}
+          isParent={isParent}
+          currentUserId={currentUser?.id ?? ''}
+          onClose={() => setShowAdd(false)}
+          onAdd={(taskData, assigneeIds) => createTaskMutation.mutate({ ...taskData, assigneeIds })}
+          loading={createTaskMutation.isPending}
+        />
+      )}
+
+      {/* TKB: AddScheduleModal giữ nguyên */}
+      {subTab === 'timetable' && (
+        <AddScheduleModal
+          visible={showAdd}
+          defaultDayOfWeek={dayLabel}
+          members={isParent ? members : currentUser ? [{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar }] : []}
+          currentUserId={currentUser?.id ?? ''}
+          isParent={isParent}
+          weekDays={WEEK_DAYS}
+          onClose={() => setShowAdd(false)}
+          onAddTimetable={(data) => createTimetableMutation.mutate(data)}
+          loading={createTimetableMutation.isPending}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
-// ── Add Schedule/Timetable Modal ──────────────────────────────────────────────
-interface AddScheduleModalProps {
+// ── Add Timetable Modal (TKB only) ────────────────────────────────────────────
+function AddScheduleModal({ visible, defaultDayOfWeek, members, currentUserId, isParent, weekDays, onClose, onAddTimetable, loading }: {
   visible: boolean;
-  subTab: SubTab;
-  defaultDate: string;
   defaultDayOfWeek: string;
   members: { id: string; name: string; avatar: string }[];
   currentUserId: string;
   isParent: boolean;
   weekDays: string[];
   onClose: () => void;
-  onAddSchedule: (data: { title: string; time: string; date: string; note?: string; reminder?: boolean; userId?: string }) => void;
   onAddTimetable: (data: { subject: string; dayOfWeek: string; startTime: string; teacher?: string; room?: string; userId?: string }) => void;
   loading?: boolean;
-}
-
-function AddScheduleModal({ visible, subTab, defaultDate, defaultDayOfWeek, members, currentUserId, isParent, weekDays, onClose, onAddSchedule, onAddTimetable, loading }: AddScheduleModalProps) {
+}) {
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('');
-  const [note, setNote] = useState('');
   const [teacher, setTeacher] = useState('');
   const [room, setRoom] = useState('');
   const [selectedDay, setSelectedDay] = useState(defaultDayOfWeek);
   const [selectedUserId, setSelectedUserId] = useState(currentUserId);
 
-  const reset = () => { setTitle(''); setTime(''); setNote(''); setTeacher(''); setRoom(''); };
+  const reset = () => { setTitle(''); setTime(''); setTeacher(''); setRoom(''); };
   const handleClose = () => { reset(); onClose(); };
 
   const handleAdd = () => {
-    if (!title.trim() || !time.trim()) { Alert.alert('Thiếu thông tin', 'Vui lòng nhập tiêu đề và giờ.'); return; }
-    if (subTab === 'today') {
-      onAddSchedule({ title: title.trim(), time: time.trim(), date: defaultDate, note: note.trim() || undefined, userId: selectedUserId || undefined });
-    } else {
-      onAddTimetable({ subject: title.trim(), startTime: time.trim(), dayOfWeek: selectedDay, teacher: teacher.trim() || undefined, room: room.trim() || undefined, userId: selectedUserId || undefined });
-    }
+    if (!title.trim() || !time.trim()) { Alert.alert('Thiếu thông tin', 'Vui lòng nhập môn học và giờ.'); return; }
+    onAddTimetable({ subject: title.trim(), startTime: time.trim(), dayOfWeek: selectedDay, teacher: teacher.trim() || undefined, room: room.trim() || undefined, userId: selectedUserId || undefined });
     reset();
   };
 
@@ -277,9 +295,7 @@ function AddScheduleModal({ visible, subTab, defaultDate, defaultDayOfWeek, memb
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
         <View style={{ backgroundColor: '#FDF6EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 }}>
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#EDE8E1', alignSelf: 'center', marginBottom: 20 }} />
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#2D3A4A', marginBottom: 20 }}>
-            {subTab === 'today' ? 'Thêm lịch' : 'Thêm vào TKB'}
-          </Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#2D3A4A', marginBottom: 20 }}>Thêm vào TKB</Text>
 
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 440 }}>
             {isParent && members.length > 0 && (
@@ -300,44 +316,32 @@ function AddScheduleModal({ visible, subTab, defaultDate, defaultDayOfWeek, memb
               </>
             )}
 
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>
-              {subTab === 'today' ? 'TIÊU ĐỀ *' : 'MÔN HỌC *'}
-            </Text>
-            <TextInput value={title} onChangeText={setTitle} placeholder={subTab === 'today' ? 'Ví dụ: Học piano, Bơi lội...' : 'Ví dụ: Toán, Anh văn...'} placeholderTextColor="#B0BAC7"
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>MÔN HỌC *</Text>
+            <TextInput value={title} onChangeText={setTitle} placeholder="Ví dụ: Toán, Anh văn..." placeholderTextColor="#B0BAC7"
               style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: title ? '#0EA5E9' : '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#2D3A4A', marginBottom: 16 }} />
 
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>GIỜ BẮT ĐẦU * (HH:MM)</Text>
             <TextInput value={time} onChangeText={setTime} placeholder="08:00" placeholderTextColor="#B0BAC7" keyboardType="numbers-and-punctuation"
               style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: time ? '#0EA5E9' : '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#2D3A4A', marginBottom: 16 }} />
 
-            {subTab === 'timetable' ? (
-              <>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>THỨ</Text>
-                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                  {weekDays.map((d) => (
-                    <TouchableOpacity key={d} onPress={() => setSelectedDay(d)}
-                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: selectedDay === d ? '#0EA5E9' : '#FFFFFF', borderWidth: 1.5, borderColor: selectedDay === d ? '#0EA5E9' : '#EDE8E1' }}
-                    >
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: selectedDay === d ? '#FFFFFF' : '#8E9BAB' }}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>THỨ</Text>
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+              {weekDays.map((d) => (
+                <TouchableOpacity key={d} onPress={() => setSelectedDay(d)}
+                  style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: selectedDay === d ? '#0EA5E9' : '#FFFFFF', borderWidth: 1.5, borderColor: selectedDay === d ? '#0EA5E9' : '#EDE8E1' }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: selectedDay === d ? '#FFFFFF' : '#8E9BAB' }}>{d}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>GIÁO VIÊN</Text>
-                <TextInput value={teacher} onChangeText={setTeacher} placeholder="Tên giáo viên (không bắt buộc)" placeholderTextColor="#B0BAC7"
-                  style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>GIÁO VIÊN</Text>
+            <TextInput value={teacher} onChangeText={setTeacher} placeholder="Tên giáo viên (không bắt buộc)" placeholderTextColor="#B0BAC7"
+              style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
 
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>PHÒNG HỌC</Text>
-                <TextInput value={room} onChangeText={setRoom} placeholder="Phòng học (không bắt buộc)" placeholderTextColor="#B0BAC7"
-                  style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
-              </>
-            ) : (
-              <>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>GHI CHÚ</Text>
-                <TextInput value={note} onChangeText={setNote} placeholder="Ghi chú thêm (không bắt buộc)" placeholderTextColor="#B0BAC7"
-                  style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
-              </>
-            )}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>PHÒNG HỌC</Text>
+            <TextInput value={room} onChangeText={setRoom} placeholder="Phòng học (không bắt buộc)" placeholderTextColor="#B0BAC7"
+              style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
           </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
