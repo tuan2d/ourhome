@@ -76,16 +76,9 @@ export function RoleBadge() {
           <Text style={{ fontSize: 10, color: isParent ? '#7DD3FC' : '#86EFAC', marginLeft: 2 }}>›</Text>
         </TouchableOpacity>
 
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          {isParent && (
-            <TouchableOpacity onPress={handleShowInvite} style={{ backgroundColor: '#EFF9FF', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
-              <Text style={{ fontSize: 12, color: '#0EA5E9', fontWeight: '600' }}>🔗 Mã mời</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => signOut()} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, color: '#8E9BAB' }}>Đăng xuất</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => signOut()} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
+          <Text style={{ fontSize: 12, color: '#8E9BAB' }}>Đăng xuất</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Members modal */}
@@ -100,6 +93,19 @@ export function RoleBadge() {
             <ActivityIndicator color="#0EA5E9" style={{ paddingVertical: 32 }} />
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
+              {isParent && (
+                <TouchableOpacity
+                  onPress={handleShowInvite}
+                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', borderRadius: 16, padding: 14, marginBottom: 16, gap: 12 }}
+                >
+                  <Text style={{ fontSize: 28 }}>🔗</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#0EA5E9' }}>Mã mời gia đình</Text>
+                    <Text style={{ fontSize: 12, color: '#7DD3FC', marginTop: 1 }}>Nhấn để xem và chia sẻ mã</Text>
+                  </View>
+                  <Text style={{ fontSize: 18, color: '#7DD3FC' }}>›</Text>
+                </TouchableOpacity>
+              )}
               {members.map((m) => {
                 const isSelf = m.id === currentUser?.id;
                 const isMemberParent = m.role === 'parent';
