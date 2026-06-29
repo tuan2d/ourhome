@@ -120,6 +120,7 @@ export function RoleBadge() {
                       <Text style={{ fontSize: 12, color: isMemberParent ? '#0EA5E9' : '#16A34A', marginTop: 2 }}>
                         {isMemberParent ? '👑 Quản lý' : '🧒 Thành viên'}
                       </Text>
+                      <Text style={{ fontSize: 10, color: '#C0C9D4', marginTop: 1 }} selectable>id: {m.id}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D3A4A' }}>{m.totalPoints ?? 0}</Text>
