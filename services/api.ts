@@ -67,6 +67,7 @@ export function createApi(getToken: () => Promise<string | null>) {
         dueDate?: string;
         assigneeIds: string[];
         autoApprove?: boolean;
+        repeat?: string | null;
       }) => apiFetch<ApiTask[]>('/api/tasks', { method: 'POST', body: JSON.stringify(data) }),
 
       update: (id: string, patch: Partial<{ title: string; note: string; tags: string[]; points: number; dueDate: string }>) =>
@@ -175,6 +176,7 @@ export interface ApiTask {
   points: number;
   status: 'pending' | 'done' | 'approved';
   dueDate: string | null;
+  repeat: string | null;
   createdAt: string;
 }
 

@@ -64,6 +64,7 @@ export default function Tasks() {
     id: string; title: string; done: boolean; tags: string[];
     points: number; memberId: string; memberName: string; memberAvatar: string;
     status: 'pending' | 'done' | 'approved';
+    dueDate: string | null; repeat: string | null;
   };
 
   const allTasks: DisplayTask[] = taskRows
@@ -78,6 +79,8 @@ export default function Tasks() {
       memberName: row.assignee?.name ?? '?',
       memberAvatar: row.assignee?.avatar ?? '🧑',
       status: row.task.status,
+      dueDate: row.task.dueDate ?? null,
+      repeat: row.task.repeat ?? null,
     }));
 
   const allTags = Array.from(new Set([...DEFAULT_TAGS, ...allTasks.flatMap((t) => t.tags)]));
@@ -209,6 +212,16 @@ export default function Tasks() {
                       {task.status === 'approved' && (
                         <Text style={{ fontSize: 11, color: '#16A34A', fontWeight: '600' }}>✅ Đã duyệt</Text>
                       )}
+                      {task.dueDate && (
+                        <Text style={{ fontSize: 10, color: '#F59E0B', backgroundColor: '#FEF9C3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          📅 {new Date(task.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                        </Text>
+                      )}
+                      {task.repeat && (
+                        <Text style={{ fontSize: 10, color: '#8B5CF6', backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          🔁 {{ daily: 'Hàng ngày', weekly: 'Hàng tuần', monthly: 'Hàng tháng' }[task.repeat] ?? task.repeat}
+                        </Text>
+                      )}
                       {task.tags.map((tag) => (
                         <Text key={tag} style={{ fontSize: 10, color: '#8E9BAB', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>🏷 {tag}</Text>
                       ))}
@@ -298,7 +311,7 @@ interface AddTaskModalProps {
   isParent: boolean;
   currentUserId: string;
   onClose: () => void;
-  onAdd: (data: { title: string; note?: string; points?: number; tags?: string[]; autoApprove?: boolean }, assigneeIds: string[]) => void;
+  onAdd: (data: { title: string; note?: string; points?: number; tags?: string[]; autoApprove?: boolean; dueDate?: string; repeat?: string | null }, assigneeIds: string[]) => void;
   loading?: boolean;
 }
 
@@ -309,17 +322,30 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [assignees, setAssignees] = useState<string[]>(defaultAssignees);
   const [autoApprove, setAutoApprove] = useState(false);
+  const [dueDateOption, setDueDateOption] = useState<'none' | 'today' | 'tomorrow' | 'week'>('none');
+  const [repeat, setRepeat] = useState<string | null>(null);
 
   useEffect(() => { if (visible) setAssignees(defaultAssignees); }, [visible]);
 
-  const reset = () => { setTitle(''); setNote(''); setPoints(''); setSelectedTags([]); setAutoApprove(false); };
+  const reset = () => {
+    setTitle(''); setNote(''); setPoints(''); setSelectedTags([]);
+    setAutoApprove(false); setDueDateOption('none'); setRepeat(null);
+  };
   const handleClose = () => { reset(); onClose(); };
+
+  const resolveDueDate = (): string | undefined => {
+    const d = new Date();
+    if (dueDateOption === 'today') return d.toISOString();
+    if (dueDateOption === 'tomorrow') { d.setDate(d.getDate() + 1); return d.toISOString(); }
+    if (dueDateOption === 'week') { d.setDate(d.getDate() + 7); return d.toISOString(); }
+    return undefined;
+  };
 
   const handleAdd = () => {
     if (!title.trim()) return;
     if (assignees.length === 0) { Alert.alert('Chọn người thực hiện', 'Vui lòng chọn ít nhất 1 thành viên.'); return; }
     onAdd(
-      { title: title.trim(), note: note.trim() || undefined, points: points ? parseInt(points) : undefined, tags: selectedTags, autoApprove },
+      { title: title.trim(), note: note.trim() || undefined, points: points ? parseInt(points) : undefined, tags: selectedTags, autoApprove, dueDate: resolveDueDate(), repeat },
       assignees,
     );
     reset();
@@ -327,6 +353,20 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
 
   const toggleTag = (tag: string) => setSelectedTags((p) => p.includes(tag) ? p.filter((t) => t !== tag) : [...p, tag]);
   const toggleAssignee = (id: string) => setAssignees((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+
+  const DUE_OPTIONS = [
+    { key: 'none', label: 'Không' },
+    { key: 'today', label: 'Hôm nay' },
+    { key: 'tomorrow', label: 'Ngày mai' },
+    { key: 'week', label: '7 ngày tới' },
+  ] as const;
+
+  const REPEAT_OPTIONS = [
+    { key: null, label: 'Không lặp' },
+    { key: 'daily', label: 'Hàng ngày' },
+    { key: 'weekly', label: 'Hàng tuần' },
+    { key: 'monthly', label: 'Hàng tháng' },
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -336,7 +376,8 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#EDE8E1', alignSelf: 'center', marginBottom: 20 }} />
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#2D3A4A', marginBottom: 20 }}>Thêm việc mới</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 520 }}>
+            {/* Assignees */}
             {assignableMembers.length > 0 && (
               <>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>GIAO CHO</Text>
@@ -359,38 +400,48 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
               </>
             )}
 
+            {/* Title */}
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>TÊN CÔNG VIỆC *</Text>
             <TextInput value={title} onChangeText={setTitle} placeholder="Ví dụ: Dọn phòng, Làm bài tập..." placeholderTextColor="#B0BAC7"
               style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: title ? '#0EA5E9' : '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#2D3A4A', marginBottom: 16 }} />
 
+            {/* Note */}
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>GHI CHÚ</Text>
             <TextInput value={note} onChangeText={setNote} placeholder="Ghi chú thêm (không bắt buộc)..." placeholderTextColor="#B0BAC7"
               style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
 
+            {/* Points */}
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 6 }}>ĐIỂM THƯỞNG</Text>
             <TextInput value={points} onChangeText={setPoints} placeholder="Số điểm (để trống nếu không có)" placeholderTextColor="#B0BAC7" keyboardType="numeric"
               style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2D3A4A', marginBottom: 16 }} />
 
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>TAGS</Text>
-            {isParent && (
-              <>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>TÙY CHỌN</Text>
-                <TouchableOpacity
-                  onPress={() => setAutoApprove((v) => !v)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: autoApprove ? '#F0FDF4' : '#FFFFFF', borderWidth: 1, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}
+            {/* Due date */}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>HẠN HOÀN THÀNH</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+              {DUE_OPTIONS.map((opt) => (
+                <TouchableOpacity key={opt.key} onPress={() => setDueDateOption(opt.key)}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 12, backgroundColor: dueDateOption === opt.key ? '#0EA5E9' : '#FFFFFF', borderWidth: 1.5, borderColor: dueDateOption === opt.key ? '#0EA5E9' : '#EDE8E1', alignItems: 'center' }}
                 >
-                  <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', backgroundColor: autoApprove ? '#16A34A' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                    {autoApprove && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>✓</Text>}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#2D3A4A' }}>Không cần xác nhận</Text>
-                    <Text style={{ fontSize: 12, color: '#8E9BAB', marginTop: 1 }}>Tự động duyệt khi con hoàn thành</Text>
-                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: dueDateOption === opt.key ? '#FFFFFF' : '#8E9BAB' }}>{opt.label}</Text>
                 </TouchableOpacity>
-              </>
-            )}
+              ))}
+            </View>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {/* Repeat */}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>LẶP LẠI</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+              {REPEAT_OPTIONS.map((opt) => (
+                <TouchableOpacity key={String(opt.key)} onPress={() => setRepeat(opt.key)}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 12, backgroundColor: repeat === opt.key ? '#8B5CF6' : '#FFFFFF', borderWidth: 1.5, borderColor: repeat === opt.key ? '#8B5CF6' : '#EDE8E1', alignItems: 'center' }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: repeat === opt.key ? '#FFFFFF' : '#8E9BAB' }}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Tags */}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>TAGS</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {availableTags.map((tag) => {
                 const active = selectedTags.includes(tag);
                 return (
@@ -402,6 +453,25 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
                 );
               })}
             </View>
+
+            {/* Auto-approve toggle (parent only) */}
+            {isParent && (
+              <>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#8E9BAB', marginBottom: 8 }}>TÙY CHỌN</Text>
+                <TouchableOpacity
+                  onPress={() => setAutoApprove((v) => !v)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: autoApprove ? '#F0FDF4' : '#FFFFFF', borderWidth: 1, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8 }}
+                >
+                  <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', backgroundColor: autoApprove ? '#16A34A' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                    {autoApprove && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>✓</Text>}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#2D3A4A' }}>Không cần xác nhận</Text>
+                    <Text style={{ fontSize: 12, color: '#8E9BAB', marginTop: 1 }}>Tự động duyệt khi hoàn thành</Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
           </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
