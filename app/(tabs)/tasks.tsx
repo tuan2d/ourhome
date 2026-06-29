@@ -429,6 +429,8 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
     reset();
   };
 
+  const isSelfOnly = assignees.length === 1 && assignees[0] === currentUserId;
+
   const toggleTag = (tag: string) => setSelectedTags((p) => p.includes(tag) ? p.filter((t) => t !== tag) : [...p, tag]);
   const toggleAssignee = (id: string) => setAssignees((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
 
@@ -512,28 +514,23 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
               />
             </View>
 
-            {/* 4. Ngày hẹn + Lặp lại (2 col) */}
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: showDatePicker ? 0 : 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>NGÀY HẸN</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker((v) => !v)} style={fieldStyle(!!dueDate || showDatePicker)}>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: dueDate ? '#0EA5E9' : '#B0BAC7' }}>
-                    {dueDate ? `📅 ${formatDueDate(dueDate)}` : '📅 Chọn ngày'}
-                    {showDatePicker ? ' ▲' : ' ▼'}
+            {/* 4. Ngày hẹn + Lặp lại cùng hàng */}
+            <View style={{ marginBottom: showDatePicker ? 0 : 10 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>NGÀY HẸN · LẶP LẠI</Text>
+              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => setShowDatePicker((v) => !v)} style={{ ...fieldStyle(!!dueDate || showDatePicker), flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: dueDate ? '#0EA5E9' : '#B0BAC7' }}>
+                    {dueDate ? `📅 ${formatDueDate(dueDate)}` : '📅 Ngày'}
                   </Text>
+                  <Text style={{ fontSize: 9, color: '#B0BAC7' }}>{showDatePicker ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>LẶP LẠI</Text>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
-                  {REPEAT_OPTIONS.map((opt) => (
-                    <TouchableOpacity key={String(opt.key)} onPress={() => setRepeat(opt.key)}
-                      style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: repeat === opt.key ? '#8B5CF6' : '#FFFFFF', borderWidth: 1, borderColor: repeat === opt.key ? '#8B5CF6' : '#EDE8E1', alignItems: 'center' }}
-                    >
-                      <Text style={{ fontSize: 9, fontWeight: '700', color: repeat === opt.key ? '#FFFFFF' : '#8E9BAB' }}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {REPEAT_OPTIONS.map((opt) => (
+                  <TouchableOpacity key={String(opt.key)} onPress={() => setRepeat(opt.key)}
+                    style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: repeat === opt.key ? '#8B5CF6' : '#FFFFFF', borderWidth: 1, borderColor: repeat === opt.key ? '#8B5CF6' : '#EDE8E1', alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: repeat === opt.key ? '#FFFFFF' : '#8E9BAB' }}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
@@ -547,44 +544,46 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
               </View>
             )}
 
-            {/* 5. Điểm + Ghi chú (2 col) */}
+            {/* 5. Điểm + Auto-approve (2 col), Ghi chú full width */}
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>ĐIỂM THƯỞNG</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isSelfOnly ? '#D0D5DD' : '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>ĐIỂM THƯỞNG</Text>
                 <TextInput
-                  value={points} onChangeText={setPoints}
-                  placeholder="0"
-                  placeholderTextColor="#B0BAC7"
+                  value={isSelfOnly ? '' : points}
+                  onChangeText={isSelfOnly ? undefined : setPoints}
+                  editable={!isSelfOnly}
+                  placeholder={isSelfOnly ? 'Không áp dụng' : '0'}
+                  placeholderTextColor={isSelfOnly ? '#D0D5DD' : '#B0BAC7'}
                   keyboardType="numeric"
-                  style={{ ...fieldStyle(!!points), fontSize: 13, color: points ? '#15803D' : '#2D3A4A', fontWeight: points ? '600' : '400' }}
+                  style={{ ...fieldStyle(!isSelfOnly && !!points), fontSize: 13, color: isSelfOnly ? '#D0D5DD' : (points ? '#15803D' : '#2D3A4A'), fontWeight: (!isSelfOnly && points) ? '600' : '400', backgroundColor: isSelfOnly ? '#F8FAFC' : '#FFFFFF' }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>GHI CHÚ</Text>
-                <TextInput
-                  value={note} onChangeText={setNote}
-                  placeholder="Thêm ghi chú..."
-                  placeholderTextColor="#B0BAC7"
-                  style={{ ...fieldStyle(false), fontSize: 13, color: '#2D3A4A' }}
-                />
-              </View>
+              {isParent && (
+                <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>TỰ ĐỘNG DUYỆT</Text>
+                  <TouchableOpacity
+                    onPress={() => setAutoApprove((v) => !v)}
+                    style={{ ...fieldStyle(autoApprove), flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: autoApprove ? '#F0FDF4' : '#FFFFFF', borderColor: autoApprove ? '#16A34A' : '#EDE8E1' }}
+                  >
+                    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', backgroundColor: autoApprove ? '#16A34A' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                      {autoApprove && <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+                    </View>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: autoApprove ? '#16A34A' : '#8E9BAB' }}>Bật</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
-            {/* 6. Auto-approve (parent only) */}
-            {isParent && (
-              <TouchableOpacity
-                onPress={() => setAutoApprove((v) => !v)}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: autoApprove ? '#F0FDF4' : '#FFFFFF', borderWidth: 1, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 4 }}
-              >
-                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', backgroundColor: autoApprove ? '#16A34A' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                  {autoApprove && <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>✓</Text>}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#2D3A4A' }}>Tự động duyệt</Text>
-                  <Text style={{ fontSize: 11, color: '#8E9BAB', marginTop: 1 }}>Không cần xác nhận khi hoàn thành</Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            {/* 6. Ghi chú */}
+            <View style={{ marginBottom: 4 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>GHI CHÚ</Text>
+              <TextInput
+                value={note} onChangeText={setNote}
+                placeholder="Thêm ghi chú..."
+                placeholderTextColor="#B0BAC7"
+                style={{ ...fieldStyle(false), fontSize: 13, color: '#2D3A4A' }}
+              />
+            </View>
 
           </ScrollView>
 
