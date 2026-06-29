@@ -80,20 +80,6 @@ export function createApi(getToken: () => Promise<string | null>) {
         apiFetch<ApiTask>(`/api/tasks/${id}/approve`, { method: 'PATCH' }),
     },
 
-    // ── Schedules ─────────────────────────────────────────────────────────────
-    schedule: {
-      list: (date?: string, userId?: string) => {
-        const params: Record<string, string> = {};
-        if (date) params.date = date;
-        if (userId) params.userId = userId;
-        const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
-        return apiFetch<ApiScheduleItem[]>(`/api/schedules${qs}`);
-      },
-
-      create: (data: { title: string; time: string; date: string; note?: string; reminder?: boolean; userId?: string }) =>
-        apiFetch('/api/schedules', { method: 'POST', body: JSON.stringify(data) }),
-    },
-
     // ── Timetable ─────────────────────────────────────────────────────────────
     timetable: {
       list: (userId?: string) =>
@@ -183,17 +169,6 @@ export interface ApiTask {
 export interface ApiTaskRow {
   task: ApiTask;
   assignee: { id: string; name: string; avatar: string } | null;
-}
-
-export interface ApiScheduleItem {
-  id: string;
-  familyId: string;
-  userId: string;
-  title: string;
-  note: string | null;
-  time: string;
-  date: string;
-  reminder: boolean;
 }
 
 export interface ApiTimetableItem {
