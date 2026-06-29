@@ -79,6 +79,9 @@ export function createApi(getToken: () => Promise<string | null>) {
       approve: (id: string) =>
         apiFetch<ApiTask>(`/api/tasks/${id}/approve`, { method: 'PATCH' }),
 
+      revert: (id: string) =>
+        apiFetch<ApiTask>(`/api/tasks/${id}/revert`, { method: 'PATCH' }),
+
       approveAll: () =>
         apiFetch<{ approved: number }>('/api/tasks/approve-all', { method: 'POST' }),
     },

@@ -51,6 +51,12 @@ export default function Tasks() {
     onError: (e: Error) => Alert.alert('Lỗi', e.message),
   });
 
+  const revertMutation = useMutation({
+    mutationFn: (id: string) => api.task.revert(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+    onError: (e: Error) => Alert.alert('Lỗi', e.message),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof api.task.create>[0]) => api.task.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); setShowAdd(false); },
@@ -276,11 +282,27 @@ export default function Tasks() {
                       </View>
                     </View>
                     {isParent && task.status === 'done' && (
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <TouchableOpacity
+                          onPress={() => revertMutation.mutate(task.id)}
+                          style={{ backgroundColor: '#FEF2F2', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                        >
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700' }}>Từ chối</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => api.task.approve(task.id).then(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }))}
+                          style={{ backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                        >
+                          <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '700' }}>Duyệt</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {!isParent && task.status === 'done' && (
                       <TouchableOpacity
-                        onPress={() => api.task.approve(task.id).then(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }))}
-                        style={{ backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                        onPress={() => revertMutation.mutate(task.id)}
+                        style={{ backgroundColor: '#FEF9C3', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
                       >
-                        <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '700' }}>Duyệt</Text>
+                        <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '700' }}>Bỏ ✕</Text>
                       </TouchableOpacity>
                     )}
                   </View>
