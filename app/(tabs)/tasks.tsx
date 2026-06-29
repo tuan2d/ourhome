@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useApi, type ApiMember, type ApiTaskRow } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { DEFAULT_TAGS } from '../../constants/mockData';
@@ -17,6 +18,7 @@ export default function Tasks() {
   const { currentUser, familyId, selectedMemberIds, setSelectedMembers } = useAppStore();
   const api = useApi();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const isParent = currentUser?.role === 'parent';
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Tất cả');
@@ -110,6 +112,9 @@ export default function Tasks() {
           <Text className="text-xs text-muted">To-do list</Text>
           <Text className="text-2xl font-bold text-brand mt-0.5">Việc cần hoàn thành</Text>
         </View>
+        <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 18 }}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       <RoleBadge />

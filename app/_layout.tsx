@@ -93,6 +93,7 @@ function AuthGate() {
       <Stack.Screen name="(onboarding)/family-setup" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="tags" />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useApi, type ApiReward, type ApiPointTransaction } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { RoleBadge } from '../../components/RoleBadge';
@@ -10,6 +11,7 @@ export default function Rewards() {
   const { currentUser } = useAppStore();
   const api = useApi();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const isParent = currentUser?.role === 'parent';
   const [showAdd, setShowAdd] = useState(false);
 
@@ -66,9 +68,14 @@ export default function Rewards() {
 
   return (
     <SafeAreaView className="flex-1 bg-cream" edges={['top']}>
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-xs text-muted">Điểm thưởng</Text>
-        <Text className="text-2xl font-bold text-brand mt-0.5">Đổi thưởng minh bạch</Text>
+      <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
+        <View>
+          <Text className="text-xs text-muted">Điểm thưởng</Text>
+          <Text className="text-2xl font-bold text-brand mt-0.5">Đổi thưởng minh bạch</Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 18 }}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       <RoleBadge />
