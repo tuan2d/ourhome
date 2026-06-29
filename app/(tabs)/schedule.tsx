@@ -56,7 +56,6 @@ export default function Schedule() {
     enabled: !!currentUser,
   });
 
-  const filteredSchedules = schedules.filter((s) => targetMemberIds.includes(s.userId));
   const filteredTimetable = timetable
     .filter((t) => targetMemberIds.includes(t.userId) && t.dayOfWeek === dayLabel)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
