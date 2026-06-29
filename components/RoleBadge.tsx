@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, Share, ActivityIndicator, Platform, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, ScrollView, Clipboard } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { useAppStore } from '../store/useAppStore';
 import { useApi, type ApiMember } from '../services/api';
@@ -12,54 +12,45 @@ export function RoleBadge() {
   const isParent = currentUser?.role === 'parent';
   const api = useApi();
 
-  const [showInvite, setShowInvite] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
-  const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
-
-  const handleShowInvite = async () => {
-    setShowInvite(true);
-    if (inviteCode) return;
-    setLoading(true);
-    try {
-      const family = await api.family.mine();
-      setInviteCode(family.inviteCode);
-      if (!familyName) useAppStore.setState({ familyName: family.name });
-    } catch {}
-    finally { setLoading(false); }
-  };
+  const [copied, setCopied] = useState(false);
 
   const handleShowMembers = async () => {
     setShowMembers(true);
     if (members.length > 0) return;
     setMembersLoading(true);
     try {
-      const list = await api.family.members(familyId!);
+      const [list, family] = await Promise.all([
+        api.family.members(familyId!),
+        isParent ? api.family.mine() : Promise.resolve(null),
+      ]);
       setMembers(list);
+      if (family) {
+        setInviteCode(family.inviteCode);
+        if (!familyName) useAppStore.setState({ familyName: family.name });
+      }
     } catch {}
     finally { setMembersLoading(false); }
   };
 
-  const handleShare = async () => {
-    const message = `Tham gia gia đình "${familyName}" trên OurHome!\nMã mời: ${inviteCode}`;
+  const handleCopy = async () => {
     if (Platform.OS === 'web') {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ text: message }).catch(() => {});
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(message);
-        Alert.alert('Đã sao chép', 'Mã mời đã được sao chép vào clipboard.');
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(inviteCode);
       }
     } else {
-      Share.share({ message });
+      Clipboard.setString(inviteCode);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 8 }}>
-        {/* Badge — tap để xem thành viên */}
         <TouchableOpacity
           onPress={handleShowMembers}
           style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isParent ? '#EFF9FF' : '#F0FDF4', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, gap: 5 }}
@@ -81,31 +72,35 @@ export function RoleBadge() {
         </TouchableOpacity>
       </View>
 
-      {/* Members modal */}
       <Modal visible={showMembers} transparent animationType="slide" onRequestClose={() => setShowMembers(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} activeOpacity={1} onPress={() => setShowMembers(false)} />
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FDF6EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: Platform.OS === 'ios' ? 44 : 24, maxHeight: '75%' }}>
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#EDE8E1', alignSelf: 'center', marginBottom: 20 }} />
           <Text style={{ fontSize: 18, fontWeight: '800', color: '#2D3A4A', marginBottom: 4 }}>Thành viên gia đình</Text>
-          {familyName && <Text style={{ fontSize: 13, color: '#8E9BAB', marginBottom: 20 }}>🏠 {familyName}</Text>}
+          {familyName && <Text style={{ fontSize: 13, color: '#8E9BAB', marginBottom: 16 }}>🏠 {familyName}</Text>}
 
           {membersLoading ? (
             <ActivityIndicator color="#0EA5E9" style={{ paddingVertical: 32 }} />
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
-              {isParent && (
-                <TouchableOpacity
-                  onPress={handleShowInvite}
-                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', borderRadius: 16, padding: 14, marginBottom: 16, gap: 12 }}
-                >
-                  <Text style={{ fontSize: 28 }}>🔗</Text>
+              {/* Invite code — parent only */}
+              {isParent && inviteCode ? (
+                <View style={{ backgroundColor: '#E0F2FE', borderRadius: 16, padding: 14, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#0EA5E9' }}>Mã mời gia đình</Text>
-                    <Text style={{ fontSize: 12, color: '#7DD3FC', marginTop: 1 }}>Nhấn để xem và chia sẻ mã</Text>
+                    <Text style={{ fontSize: 11, color: '#7DD3FC', fontWeight: '600', marginBottom: 4 }}>MÃ MỜI GIA ĐÌNH</Text>
+                    <Text style={{ fontSize: 28, fontWeight: '800', color: '#0EA5E9', letterSpacing: 6 }}>{inviteCode}</Text>
                   </View>
-                  <Text style={{ fontSize: 18, color: '#7DD3FC' }}>›</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleCopy}
+                    style={{ backgroundColor: copied ? '#16A34A' : '#0EA5E9', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>{copied ? '✓ Đã copy' : 'Copy'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : isParent && (
+                <ActivityIndicator color="#0EA5E9" style={{ marginBottom: 16 }} />
               )}
+
               {members.map((m) => {
                 const isSelf = m.id === currentUser?.id;
                 const isMemberParent = m.role === 'parent';
@@ -138,35 +133,6 @@ export function RoleBadge() {
             </ScrollView>
           )}
         </View>
-      </Modal>
-
-      {/* Invite modal */}
-      <Modal visible={showInvite} transparent animationType="fade" onRequestClose={() => setShowInvite(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setShowInvite(false)}>
-          <View style={{ backgroundColor: '#FDF6EE', borderRadius: 24, padding: 28, width: 300, alignItems: 'center' }}>
-            <Text style={{ fontSize: 32, marginBottom: 8 }}>🔗</Text>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: '#2D3A4A', marginBottom: 4 }}>Mã mời gia đình</Text>
-            {familyName ? <Text style={{ fontSize: 13, color: '#8E9BAB', marginBottom: 20 }}>🏠 {familyName}</Text> : null}
-
-            {loading ? (
-              <ActivityIndicator color="#0EA5E9" style={{ marginVertical: 20 }} />
-            ) : (
-              <>
-                <View style={{ backgroundColor: '#E0F2FE', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 32, fontWeight: '800', color: '#0EA5E9', letterSpacing: 8, textAlign: 'center' }}>{inviteCode}</Text>
-                </View>
-                <Text style={{ fontSize: 12, color: '#B0BAC7', marginBottom: 20, textAlign: 'center' }}>
-                  Gửi mã này cho thành viên{'\n'}để họ tham gia gia đình
-                </Text>
-                <TouchableOpacity onPress={handleShare} style={{ backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 32, width: '100%', alignItems: 'center' }}>
-                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
-                    {Platform.OS === 'web' ? 'Sao chép mã mời' : 'Chia sẻ mã mời'}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
       </Modal>
     </>
   );
