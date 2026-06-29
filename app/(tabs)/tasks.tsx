@@ -225,7 +225,12 @@ export default function Tasks() {
               const checkBg = isExpired ? '#F5F5F5' : isDone ? '#0EA5E9' : 'transparent';
 
               return (
-                <View key={task.id} style={{ borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1', paddingVertical: 14 }}>
+                <TouchableOpacity
+                  key={task.id}
+                  onPress={() => isParent && router.push(`/task/${task.id}`)}
+                  activeOpacity={isParent ? 0.6 : 1}
+                  style={{ borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1', paddingVertical: 14 }}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
                       onPress={() => { if (!isDone && !isExpired) completeMutation.mutate(task.id); }}
@@ -279,7 +284,7 @@ export default function Tasks() {
                       </TouchableOpacity>
                     )}
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
