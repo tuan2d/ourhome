@@ -73,8 +73,8 @@ export function createApi(getToken: () => Promise<string | null>) {
       update: (id: string, patch: Partial<{ title: string; note: string; tags: string[]; points: number; dueDate: string }>) =>
         apiFetch<ApiTask>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
-      complete: (id: string, photoUrl?: string) =>
-        apiFetch<ApiTask>(`/api/tasks/${id}/complete`, { method: 'PATCH', body: JSON.stringify({ photoUrl }) }),
+      complete: (id: string) =>
+        apiFetch<ApiTask>(`/api/tasks/${id}/complete`, { method: 'PATCH' }),
 
       approve: (id: string) =>
         apiFetch<ApiTask>(`/api/tasks/${id}/approve`, { method: 'PATCH' }),
@@ -109,16 +109,6 @@ export function createApi(getToken: () => Promise<string | null>) {
         apiFetch<{ totalPoints: number; weeklyPoints: number; history: ApiPointTransaction[] }>(`/api/points/${userId}`),
     },
 
-    // ── Goals ─────────────────────────────────────────────────────────────────
-    goal: {
-      list: () => apiFetch<ApiGoal[]>('/api/goals'),
-
-      create: (data: { title: string; targetValue: number; note?: string; deadline?: string }) =>
-        apiFetch('/api/goals', { method: 'POST', body: JSON.stringify(data) }),
-
-      update: (id: string, patch: Partial<{ currentValue: number; title: string; deadline: string }>) =>
-        apiFetch(`/api/goals/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-    },
   };
 }
 
@@ -205,12 +195,3 @@ export interface ApiPointTransaction {
   createdAt: string;
 }
 
-export interface ApiGoal {
-  id: string;
-  familyId: string;
-  title: string;
-  note: string | null;
-  targetValue: number;
-  currentValue: number;
-  deadline: string | null;
-}
