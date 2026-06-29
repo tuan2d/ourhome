@@ -117,8 +117,6 @@ export default function Tasks() {
         </TouchableOpacity>
       </View>
 
-      <RoleBadge />
-
       {/* Member filter (parent only) */}
       {isParent && members.length > 0 && (
         <MemberFilter members={members} selected={selectedMemberIds} onChange={setSelectedMembers} currentUserId={currentUser.id} />

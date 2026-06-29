@@ -78,8 +78,6 @@ export default function Rewards() {
         </TouchableOpacity>
       </View>
 
-      <RoleBadge />
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         {/* Balance card */}
         <View className="mx-4 mb-4 bg-accent rounded-3xl p-5">

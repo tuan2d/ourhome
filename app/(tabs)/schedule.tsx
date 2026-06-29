@@ -87,8 +87,6 @@ export default function Schedule() {
         </TouchableOpacity>
       </View>
 
-      <RoleBadge />
-
       {/* Member filter (parent only) */}
       {isParent && allChildren.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
