@@ -10,7 +10,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { DEFAULT_TAGS } from '../../constants/mockData';
 import { AddTaskModal } from '../../components/AddTaskModal';
 
-const STATUS_FILTERS = ['Tất cả', 'Chờ hoàn thành', 'Đã xong'] as const;
+const STATUS_FILTERS = ['Tất cả', 'Chờ hoàn thành', 'Đã xong', 'Hết hạn'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function Tasks() {
@@ -39,6 +39,15 @@ export default function Tasks() {
   const completeMutation = useMutation({
     mutationFn: (id: string) => api.task.complete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+    onError: (e: Error) => Alert.alert('Lỗi', e.message),
+  });
+
+  const approveAllMutation = useMutation({
+    mutationFn: () => api.task.approveAll(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      Alert.alert('Thành công', `Đã duyệt ${data.approved} việc`);
+    },
     onError: (e: Error) => Alert.alert('Lỗi', e.message),
   });
 
@@ -73,7 +82,7 @@ export default function Tasks() {
     .map((row) => ({
       id: row.task.id,
       title: row.task.title,
-      done: row.task.status !== 'pending',
+      done: row.task.status === 'done' || row.task.status === 'approved',
       tags: row.task.tags ?? [],
       points: row.task.points,
       memberId: row.task.assignedTo,
@@ -86,10 +95,13 @@ export default function Tasks() {
 
   const allTags = Array.from(new Set([...DEFAULT_TAGS, ...allTasks.flatMap((t) => t.tags)]));
 
+  const pendingApprovalCount = allTasks.filter((t) => t.status === 'done').length;
+
   const filtered = allTasks.filter((t) => {
     const matchStatus =
-      statusFilter === 'Chờ hoàn thành' ? !t.done :
-      statusFilter === 'Đã xong' ? t.done : true;
+      statusFilter === 'Chờ hoàn thành' ? t.status === 'pending' :
+      statusFilter === 'Đã xong' ? (t.status === 'done' || t.status === 'approved') :
+      statusFilter === 'Hết hạn' ? t.status === 'expired' : true;
     const matchTag = selectedTag ? t.tags.includes(selectedTag) : true;
     return matchStatus && matchTag;
   });
@@ -174,6 +186,24 @@ export default function Tasks() {
         </View>
       </ScrollView>
 
+      {/* Approve all banner (parent only, when tasks pending approval) */}
+      {isParent && pendingApprovalCount > 0 && (
+        <View style={{ marginHorizontal: 16, marginBottom: 8, backgroundColor: '#F0FDF4', borderRadius: 16, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 }}>
+          <Text style={{ flex: 1, fontSize: 13, color: '#16A34A', fontWeight: '600' }}>
+            {pendingApprovalCount} việc chờ duyệt
+          </Text>
+          <TouchableOpacity
+            onPress={() => approveAllMutation.mutate()}
+            disabled={approveAllMutation.isPending}
+            style={{ backgroundColor: '#16A34A', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 }}
+          >
+            {approveAllMutation.isPending
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>Duyệt tất cả</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {isLoading ? (
           <View style={{ alignItems: 'center', paddingVertical: 48 }}>
@@ -182,63 +212,76 @@ export default function Tasks() {
         ) : filtered.length === 0 ? (
           <View className="items-center py-12">
             <Text className="text-4xl mb-3">🎉</Text>
-            <Text className="text-sm font-semibold text-brand">Hoàn thành hết rồi!</Text>
-            <Text className="text-xs text-muted mt-1">Không còn việc nào cần làm.</Text>
+            <Text className="text-sm font-semibold text-brand">Không có việc nào!</Text>
+            <Text className="text-xs text-muted mt-1">Thử chọn bộ lọc khác.</Text>
           </View>
         ) : (
           <View className="mx-4 bg-surface border border-border rounded-3xl px-4">
-            {filtered.map((task, i) => (
-              <View key={task.id} style={{ borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1', paddingVertical: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <TouchableOpacity
-                    onPress={() => { if (!task.done) completeMutation.mutate(task.id); }}
-                    style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: task.done ? '#0EA5E9' : '#EDE8E1', backgroundColor: task.done ? '#0EA5E9' : 'transparent', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {task.done && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>✓</Text>}
-                  </TouchableOpacity>
-                  <View style={{ flex: 1 }}>
-                    {isParent && (
-                      <Text style={{ fontSize: 11, color: '#8E9BAB', marginBottom: 2 }}>{task.memberAvatar} {task.memberName}</Text>
-                    )}
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: task.done ? '#B0BAC7' : '#2D3A4A', textDecorationLine: task.done ? 'line-through' : 'none' }}>
-                      {task.title}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                      {task.points > 0 && (
-                        <Text style={{ fontSize: 11, color: '#0EA5E9', fontWeight: '600' }}>+{task.points} điểm</Text>
-                      )}
-                      {task.status === 'done' && (
-                        <Text style={{ fontSize: 11, color: '#F59E0B', fontWeight: '600' }}>⏳ Chờ duyệt</Text>
-                      )}
-                      {task.status === 'approved' && (
-                        <Text style={{ fontSize: 11, color: '#16A34A', fontWeight: '600' }}>✅ Đã duyệt</Text>
-                      )}
-                      {task.dueDate && (
-                        <Text style={{ fontSize: 10, color: '#F59E0B', backgroundColor: '#FEF9C3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                          📅 {new Date(task.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                        </Text>
-                      )}
-                      {task.repeat && (
-                        <Text style={{ fontSize: 10, color: '#8B5CF6', backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                          🔁 {{ daily: 'Hàng ngày', weekly: 'Hàng tuần', monthly: 'Hàng tháng' }[task.repeat] ?? task.repeat}
-                        </Text>
-                      )}
-                      {task.tags.map((tag) => (
-                        <Text key={tag} style={{ fontSize: 10, color: '#8E9BAB', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>🏷 {tag}</Text>
-                      ))}
-                    </View>
-                  </View>
-                  {isParent && task.status === 'done' && (
+            {filtered.map((task, i) => {
+              const isExpired = task.status === 'expired';
+              const isDone = task.done;
+              const textColor = isExpired ? '#B0BAC7' : isDone ? '#B0BAC7' : '#2D3A4A';
+              const checkColor = isExpired ? '#EDE8E1' : isDone ? '#0EA5E9' : '#EDE8E1';
+              const checkBg = isExpired ? '#F5F5F5' : isDone ? '#0EA5E9' : 'transparent';
+
+              return (
+                <View key={task.id} style={{ borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: '#EDE8E1', paddingVertical: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                      onPress={() => api.task.approve(task.id).then(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }))}
-                      style={{ backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                      onPress={() => { if (!isDone && !isExpired) completeMutation.mutate(task.id); }}
+                      disabled={isDone || isExpired}
+                      style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: checkColor, backgroundColor: checkBg, alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '700' }}>Duyệt</Text>
+                      {isDone && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>✓</Text>}
+                      {isExpired && <Text style={{ color: '#B0BAC7', fontSize: 10 }}>✕</Text>}
                     </TouchableOpacity>
-                  )}
+                    <View style={{ flex: 1 }}>
+                      {isParent && (
+                        <Text style={{ fontSize: 11, color: '#8E9BAB', marginBottom: 2 }}>{task.memberAvatar} {task.memberName}</Text>
+                      )}
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: textColor, textDecorationLine: isDone || isExpired ? 'line-through' : 'none' }}>
+                        {task.title}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                        {task.points > 0 && (
+                          <Text style={{ fontSize: 11, color: '#0EA5E9', fontWeight: '600' }}>+{task.points} điểm</Text>
+                        )}
+                        {task.status === 'done' && (
+                          <Text style={{ fontSize: 11, color: '#F59E0B', fontWeight: '600' }}>⏳ Chờ duyệt</Text>
+                        )}
+                        {task.status === 'approved' && (
+                          <Text style={{ fontSize: 11, color: '#16A34A', fontWeight: '600' }}>✅ Đã duyệt</Text>
+                        )}
+                        {isExpired && (
+                          <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '600' }}>⌛ Hết hạn</Text>
+                        )}
+                        {task.dueDate && (
+                          <Text style={{ fontSize: 10, color: isExpired ? '#EF4444' : '#F59E0B', backgroundColor: isExpired ? '#FEF2F2' : '#FEF9C3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                            📅 {new Date(task.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                          </Text>
+                        )}
+                        {task.repeat && (
+                          <Text style={{ fontSize: 10, color: '#8B5CF6', backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                            🔁 {{ daily: 'Hàng ngày', weekly: 'Hàng tuần', monthly: 'Hàng tháng' }[task.repeat] ?? task.repeat}
+                          </Text>
+                        )}
+                        {task.tags.map((tag) => (
+                          <Text key={tag} style={{ fontSize: 10, color: '#8E9BAB', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>🏷 {tag}</Text>
+                        ))}
+                      </View>
+                    </View>
+                    {isParent && task.status === 'done' && (
+                      <TouchableOpacity
+                        onPress={() => api.task.approve(task.id).then(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }))}
+                        style={{ backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                      >
+                        <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '700' }}>Duyệt</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>

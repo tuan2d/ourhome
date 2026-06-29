@@ -78,6 +78,9 @@ export function createApi(getToken: () => Promise<string | null>) {
 
       approve: (id: string) =>
         apiFetch<ApiTask>(`/api/tasks/${id}/approve`, { method: 'PATCH' }),
+
+      approveAll: () =>
+        apiFetch<{ approved: number }>('/api/tasks/approve-all', { method: 'POST' }),
     },
 
     // ── Timetable ─────────────────────────────────────────────────────────────
@@ -160,9 +163,10 @@ export interface ApiTask {
   note: string | null;
   tags: string[];
   points: number;
-  status: 'pending' | 'done' | 'approved';
+  status: 'pending' | 'done' | 'approved' | 'expired';
   dueDate: string | null;
   repeat: string | null;
+  parentTaskId: string | null;
   createdAt: string;
 }
 
