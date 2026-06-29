@@ -31,7 +31,9 @@ export default function FamilySetup() {
     setLoading(true);
     try {
       const res: any = await api.family.create(familyName.trim());
-      if (res?.id) setFamilyId(res.id);
+      if (res?.id) {
+        useAppStore.setState({ familyId: res.id, familyName: res.name ?? familyName.trim() });
+      }
       router.replace('/(tabs)/tasks');
     } catch (e: any) {
       Alert.alert('Lỗi', e.message ?? 'Không thể tạo gia đình');
@@ -45,7 +47,9 @@ export default function FamilySetup() {
     setLoading(true);
     try {
       const res: any = await api.family.join(inviteCode.trim().toUpperCase(), joinRole);
-      if (res?.family?.id) setFamilyId(res.family.id);
+      if (res?.family?.id) {
+        useAppStore.setState({ familyId: res.family.id, familyName: res.family.name ?? null });
+      }
       router.replace('/(tabs)/tasks');
     } catch (e: any) {
       Alert.alert('Lỗi', e.message ?? 'Mã không hợp lệ hoặc đã hết hạn');

@@ -7,12 +7,12 @@ import { useApi } from '../services/api';
 export function RoleBadge() {
   const { signOut } = useAuth();
   const currentUser = useAppStore((s) => s.currentUser);
+  const familyName = useAppStore((s) => s.familyName);
   const isParent = currentUser?.role === 'parent';
   const api = useApi();
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
-  const [familyName, setFamilyName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleShowInvite = async () => {
@@ -22,7 +22,7 @@ export function RoleBadge() {
     try {
       const family = await api.family.mine();
       setInviteCode(family.inviteCode);
-      setFamilyName(family.name);
+      if (!familyName) useAppStore.setState({ familyName: family.name });
     } catch {}
     finally { setLoading(false); }
   };
@@ -46,9 +46,14 @@ export function RoleBadge() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isParent ? '#EFF9FF' : '#F0FDF4', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, gap: 5 }}>
           <Text style={{ fontSize: 14 }}>{currentUser?.avatar ?? '🏠'}</Text>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: isParent ? '#0EA5E9' : '#16A34A' }}>
-            {currentUser?.name ?? ''}{isParent ? ' · Quản lý' : ''}
-          </Text>
+          <View>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: isParent ? '#0EA5E9' : '#16A34A' }}>
+              {currentUser?.name ?? ''}{isParent ? ' · Quản lý' : ''}
+            </Text>
+            {familyName && (
+              <Text style={{ fontSize: 10, color: isParent ? '#7DD3FC' : '#86EFAC' }}>🏠 {familyName}</Text>
+            )}
+          </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           {isParent && (
@@ -67,7 +72,7 @@ export function RoleBadge() {
           <View style={{ backgroundColor: '#FDF6EE', borderRadius: 24, padding: 28, width: 300, alignItems: 'center' }}>
             <Text style={{ fontSize: 32, marginBottom: 8 }}>🔗</Text>
             <Text style={{ fontSize: 18, fontWeight: '800', color: '#2D3A4A', marginBottom: 4 }}>Mã mời gia đình</Text>
-            {familyName ? <Text style={{ fontSize: 13, color: '#8E9BAB', marginBottom: 20 }}>{familyName}</Text> : null}
+            {familyName ? <Text style={{ fontSize: 13, color: '#8E9BAB', marginBottom: 20 }}>🏠 {familyName}</Text> : null}
 
             {loading ? (
               <ActivityIndicator color="#0EA5E9" style={{ marginVertical: 20 }} />
