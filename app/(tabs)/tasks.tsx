@@ -55,11 +55,9 @@ export default function Tasks() {
     );
   }
 
-  const allChildren = members.filter((m) => m.role === 'child');
-
-  // Filter task rows by target members
+  // Parent sees all members (including themselves), child sees only self
   const targetMemberIds = isParent
-    ? (selectedMemberIds.length > 0 ? selectedMemberIds : allChildren.map((m) => m.id))
+    ? (selectedMemberIds.length > 0 ? selectedMemberIds : members.map((m) => m.id))
     : [currentUser.id];
 
   type DisplayTask = {
@@ -98,7 +96,7 @@ export default function Tasks() {
   const targetMemberNames = isParent
     ? (selectedMemberIds.length > 0
         ? members.filter((m) => selectedMemberIds.includes(m.id)).map((m) => m.name)
-        : allChildren.map((m) => m.name))
+        : members.map((m) => m.name))
     : [currentUser.name];
 
   return (
@@ -114,8 +112,8 @@ export default function Tasks() {
       <RoleBadge />
 
       {/* Member filter (parent only) */}
-      {isParent && allChildren.length > 0 && (
-        <MemberFilter members={allChildren} selected={selectedMemberIds} onChange={setSelectedMembers} />
+      {isParent && members.length > 0 && (
+        <MemberFilter members={members} selected={selectedMemberIds} onChange={setSelectedMembers} currentUserId={currentUser.id} />
       )}
 
       {/* Progress card */}
@@ -244,13 +242,14 @@ export default function Tasks() {
       <AddTaskModal
         visible={showAdd}
         availableTags={allTags}
-        assignableMembers={isParent ? allChildren : []}
+        assignableMembers={isParent ? members : []}
         defaultAssignees={
           isParent
-            ? (selectedMemberIds.length > 0 ? selectedMemberIds : allChildren.map((m) => m.id))
+            ? (selectedMemberIds.length > 0 ? selectedMemberIds : [currentUser.id])
             : [currentUser.id]
         }
         isParent={isParent}
+        currentUserId={currentUser.id}
         onClose={() => setShowAdd(false)}
         onAdd={(taskData, assigneeIds) => createMutation.mutate({ ...taskData, assigneeIds })}
         loading={createMutation.isPending}
@@ -260,10 +259,11 @@ export default function Tasks() {
 }
 
 // ── Member Filter ─────────────────────────────────────────────────────────────
-function MemberFilter({ members, selected, onChange }: {
+function MemberFilter({ members, selected, onChange, currentUserId }: {
   members: Pick<ApiMember, 'id' | 'name' | 'avatar'>[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  currentUserId: string;
 }) {
   const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
@@ -271,6 +271,7 @@ function MemberFilter({ members, selected, onChange }: {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
       {members.map((m) => {
         const active = selected.includes(m.id);
+        const isSelf = m.id === currentUserId;
         return (
           <TouchableOpacity
             key={m.id}
@@ -278,7 +279,9 @@ function MemberFilter({ members, selected, onChange }: {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: active ? '#E0F2FE' : '#FFFFFF', borderWidth: 1.5, borderColor: active ? '#0EA5E9' : '#EDE8E1' }}
           >
             <Text style={{ fontSize: 16 }}>{m.avatar}</Text>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#0EA5E9' : '#8E9BAB' }}>{m.name}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#0EA5E9' : '#8E9BAB' }}>
+              {isSelf ? `${m.name} (Tôi)` : m.name}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -293,12 +296,13 @@ interface AddTaskModalProps {
   assignableMembers: Pick<ApiMember, 'id' | 'name' | 'avatar'>[];
   defaultAssignees: string[];
   isParent: boolean;
+  currentUserId: string;
   onClose: () => void;
   onAdd: (data: { title: string; note?: string; points?: number; tags?: string[]; autoApprove?: boolean }, assigneeIds: string[]) => void;
   loading?: boolean;
 }
 
-function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssignees, isParent, onClose, onAdd, loading }: AddTaskModalProps) {
+function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssignees, isParent, currentUserId, onClose, onAdd, loading }: AddTaskModalProps) {
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [points, setPoints] = useState('');
@@ -344,7 +348,9 @@ function AddTaskModal({ visible, availableTags, assignableMembers, defaultAssign
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: active ? '#E0F2FE' : '#FFFFFF', borderWidth: 1.5, borderColor: active ? '#0EA5E9' : '#EDE8E1' }}
                       >
                         <Text style={{ fontSize: 18 }}>{m.avatar}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#0EA5E9' : '#8E9BAB' }}>{m.name}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#0EA5E9' : '#8E9BAB' }}>
+                          {m.id === currentUserId ? `${m.name} (Tôi)` : m.name}
+                        </Text>
                         {active && <Text style={{ fontSize: 11, color: '#0EA5E9', fontWeight: '700' }}>✓</Text>}
                       </TouchableOpacity>
                     );
