@@ -109,8 +109,7 @@ export default function Tasks() {
       {/* Header */}
       <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
         <View>
-          <Text className="text-xs text-muted">To-do list</Text>
-          <Text className="text-2xl font-bold text-brand mt-0.5">Việc cần hoàn thành</Text>
+          <Text className="text-2xl font-bold text-brand">Việc cần hoàn thành</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 18 }}>⚙️</Text>

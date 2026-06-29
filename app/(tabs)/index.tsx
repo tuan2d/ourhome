@@ -45,8 +45,7 @@ export default function Dashboard() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
           <View>
-            <Text className="text-xs text-muted">Xin chào gia đình</Text>
-            <Text className="text-2xl font-bold text-brand mt-0.5">Bảng điều khiển</Text>
+            <Text className="text-2xl font-bold text-brand">Bảng điều khiển</Text>
           </View>
           <View className="w-10 h-10 rounded-full bg-accent-light items-center justify-center">
             <Text className="text-lg">🔔</Text>

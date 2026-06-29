@@ -24,6 +24,7 @@ export default function Schedule() {
   const isParent = currentUser?.role === 'parent';
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calExpanded, setCalExpanded] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>('today');
   const [showAdd, setShowAdd] = useState(false);
 
@@ -79,8 +80,7 @@ export default function Schedule() {
       {/* Header */}
       <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
         <View>
-          <Text className="text-xs text-muted">Lịch biểu</Text>
-          <Text className="text-2xl font-bold text-brand mt-0.5">Lịch hôm nay</Text>
+          <Text className="text-2xl font-bold text-brand">Lịch hôm nay</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 18 }}>⚙️</Text>
@@ -105,7 +105,12 @@ export default function Schedule() {
       )}
 
       {/* Calendar */}
-      <CalendarPicker selectedDate={selectedDate} onSelect={setSelectedDate} />
+      <CalendarPicker
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
+        expanded={calExpanded}
+        onToggleExpand={() => setCalExpanded((v) => !v)}
+      />
 
       {/* Sub-tab */}
       <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: '#EDE8E1', borderRadius: 16, padding: 3 }}>

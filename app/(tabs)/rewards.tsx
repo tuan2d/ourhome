@@ -70,8 +70,7 @@ export default function Rewards() {
     <SafeAreaView className="flex-1 bg-cream" edges={['top']}>
       <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
         <View>
-          <Text className="text-xs text-muted">Điểm thưởng</Text>
-          <Text className="text-2xl font-bold text-brand mt-0.5">Đổi thưởng minh bạch</Text>
+          <Text className="text-2xl font-bold text-brand">Đổi thưởng minh bạch</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 18 }}>⚙️</Text>
