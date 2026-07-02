@@ -66,7 +66,6 @@ export function createApi(getToken: () => Promise<string | null>) {
         tags?: string[];
         dueDate?: string;
         assigneeIds: string[];
-        autoApprove?: boolean;
         repeat?: string | null;
       }) => apiFetch<ApiTask[]>('/api/tasks', { method: 'POST', body: JSON.stringify(data) }),
 

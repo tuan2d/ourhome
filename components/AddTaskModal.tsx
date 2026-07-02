@@ -10,7 +10,6 @@ export interface AddTaskData {
   note?: string;
   points?: number;
   tags?: string[];
-  autoApprove?: boolean;
   dueDate?: string;
   repeat?: string | null;
 }
@@ -138,7 +137,6 @@ export function AddTaskModal({
   const [points, setPoints] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [assignees, setAssignees] = useState<string[]>(defaultAssignees);
-  const [autoApprove, setAutoApprove] = useState(false);
   const [dueDate, setDueDate] = useState<Date | null>(defaultDueDate ?? null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [repeat, setRepeat] = useState<string | null>(null);
@@ -152,7 +150,7 @@ export function AddTaskModal({
 
   const reset = () => {
     setTitle(''); setNote(''); setPoints(''); setSelectedTags([]);
-    setAutoApprove(false); setDueDate(defaultDueDate ?? null); setShowDatePicker(false); setRepeat(null);
+    setDueDate(defaultDueDate ?? null); setShowDatePicker(false); setRepeat(null);
   };
   const handleClose = () => { reset(); onClose(); };
 
@@ -165,7 +163,7 @@ export function AddTaskModal({
     if (!title.trim()) return;
     if (assignees.length === 0) { Alert.alert('Chọn người thực hiện', 'Vui lòng chọn ít nhất 1 thành viên.'); return; }
     onAdd(
-      { title: title.trim(), note: note.trim() || undefined, points: (!isSelfOnly && points) ? parseInt(points) : undefined, tags: selectedTags, autoApprove, dueDate: dueDate?.toISOString(), repeat },
+      { title: title.trim(), note: note.trim() || undefined, points: (!isSelfOnly && points) ? parseInt(points) : undefined, tags: selectedTags, dueDate: dueDate?.toISOString(), repeat },
       assignees,
     );
     reset();
@@ -261,34 +259,18 @@ export function AddTaskModal({
               </View>
             )}
 
-            {/* 5. Điểm + Auto-approve */}
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isSelfOnly ? '#D0D5DD' : '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>ĐIỂM THƯỞNG</Text>
-                <TextInput
-                  value={isSelfOnly ? '' : points}
-                  onChangeText={isSelfOnly ? undefined : setPoints}
-                  editable={!isSelfOnly}
-                  placeholder={isSelfOnly ? 'Không áp dụng' : '0'}
-                  placeholderTextColor={isSelfOnly ? '#D0D5DD' : '#B0BAC7'}
-                  keyboardType="numeric"
-                  style={{ ...fieldStyle(!isSelfOnly && !!points), fontSize: 13, color: isSelfOnly ? '#D0D5DD' : (points ? '#15803D' : '#2D3A4A'), fontWeight: (!isSelfOnly && points) ? '600' : '400', backgroundColor: isSelfOnly ? '#F8FAFC' : '#FFFFFF' }}
-                />
-              </View>
-              {isParent && (
-                <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>TỰ ĐỘNG DUYỆT</Text>
-                  <TouchableOpacity
-                    onPress={() => setAutoApprove((v) => !v)}
-                    style={{ ...fieldStyle(autoApprove), flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: autoApprove ? '#F0FDF4' : '#FFFFFF', borderColor: autoApprove ? '#16A34A' : '#EDE8E1' }}
-                  >
-                    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: autoApprove ? '#16A34A' : '#EDE8E1', backgroundColor: autoApprove ? '#16A34A' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                      {autoApprove && <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>✓</Text>}
-                    </View>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: autoApprove ? '#16A34A' : '#8E9BAB' }}>Bật</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+            {/* 5. Điểm */}
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: isSelfOnly ? '#D0D5DD' : '#B0BAC7', letterSpacing: 0.5, marginBottom: 6 }}>ĐIỂM THƯỞNG</Text>
+              <TextInput
+                value={isSelfOnly ? '' : points}
+                onChangeText={isSelfOnly ? undefined : setPoints}
+                editable={!isSelfOnly}
+                placeholder={isSelfOnly ? 'Không áp dụng' : '0'}
+                placeholderTextColor={isSelfOnly ? '#D0D5DD' : '#B0BAC7'}
+                keyboardType="numeric"
+                style={{ ...fieldStyle(!isSelfOnly && !!points), fontSize: 13, color: isSelfOnly ? '#D0D5DD' : (points ? '#15803D' : '#2D3A4A'), fontWeight: (!isSelfOnly && points) ? '600' : '400', backgroundColor: isSelfOnly ? '#F8FAFC' : '#FFFFFF' }}
+              />
             </View>
 
             {/* 6. Ghi chú */}
