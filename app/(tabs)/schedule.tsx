@@ -60,6 +60,13 @@ export default function Schedule() {
     .filter((t) => targetMemberIds.includes(t.userId) && t.dayOfWeek === dayLabel)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
+  // Dates that have tasks (for dot markers on calendar)
+  const markedDates = new Set(
+    taskRows
+      .filter((row) => targetMemberIds.includes(row.task.assignedTo) && row.task.dueDate)
+      .map((row) => formatDate(new Date(row.task.dueDate!)))
+  );
+
   // Filter tasks for the selected date
   const filteredTasks = taskRows.filter((row) => {
     if (!targetMemberIds.includes(row.task.assignedTo)) return false;
@@ -118,6 +125,7 @@ export default function Schedule() {
         onSelect={setSelectedDate}
         expanded={calExpanded}
         onToggleExpand={() => setCalExpanded((v) => !v)}
+        markedDates={markedDates}
       />
 
       {/* Sub-tab */}

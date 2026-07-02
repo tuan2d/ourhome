@@ -12,9 +12,10 @@ interface Props {
   onSelect: (date: Date) => void;
   expanded: boolean;
   onToggleExpand: () => void;
+  markedDates?: Set<string>; // 'YYYY-MM-DD' strings
 }
 
-export function CalendarPicker({ selectedDate, onSelect, expanded, onToggleExpand }: Props) {
+export function CalendarPicker({ selectedDate, onSelect, expanded, onToggleExpand, markedDates }: Props) {
   const today = new Date();
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -31,6 +32,11 @@ export function CalendarPicker({ selectedDate, onSelect, expanded, onToggleExpan
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+  const isMarked = (d: number) => {
+    if (!markedDates) return false;
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return markedDates.has(key);
+  };
 
   // Find the row index containing selectedDate
   const selectedIndex = firstDay + selectedDate.getDate() - 1;
@@ -93,8 +99,14 @@ export function CalendarPicker({ selectedDate, onSelect, expanded, onToggleExpan
                     <Text style={{ fontSize: 13, fontWeight: sel || tod ? '700' : '400', color: sel ? '#FFFFFF' : tod ? '#0EA5E9' : '#2D3A4A' }}>
                       {day}
                     </Text>
-                    {tod && !sel && (
+                    {(tod && !sel) && (
                       <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#0EA5E9', position: 'absolute', bottom: 2 }} />
+                    )}
+                    {isMarked(day) && !sel && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#F59E0B', position: 'absolute', bottom: 2 }} />
+                    )}
+                    {isMarked(day) && sel && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.8)', position: 'absolute', bottom: 2 }} />
                     )}
                   </>
                 )}
