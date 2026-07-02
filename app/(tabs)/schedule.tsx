@@ -45,8 +45,8 @@ export default function Schedule() {
   const dayLabel = WEEK_SHORT[selectedDate.getDay()];
 
   const { data: taskRows = [], isLoading: schedLoading } = useQuery<ApiTaskRow[]>({
-    queryKey: ['tasks'],
-    queryFn: () => api.task.list(),
+    queryKey: ['tasks-all'],
+    queryFn: () => api.task.listAll(),
     enabled: !!currentUser,
   });
 

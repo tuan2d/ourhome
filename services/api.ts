@@ -59,6 +59,8 @@ export function createApi(getToken: () => Promise<string | null>) {
         return apiFetch<ApiTaskRow[]>(`/api/tasks${qs}`);
       },
 
+      listAll: () => apiFetch<ApiTaskRow[]>('/api/tasks?all=true'),
+
       create: (data: {
         title: string;
         note?: string;
