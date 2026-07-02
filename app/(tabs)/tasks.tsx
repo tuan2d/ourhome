@@ -157,7 +157,7 @@ export default function Tasks() {
       </View>
 
       {/* Status filter */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ minHeight: 40 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
         {STATUS_FILTERS.map((f) => (
           <TouchableOpacity
             key={f}
@@ -167,10 +167,10 @@ export default function Tasks() {
             <Text style={{ fontSize: 12, fontWeight: '600', color: statusFilter === f ? '#FFFFFF' : '#8E9BAB' }}>{f}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Tag filter */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ minHeight: 36 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity
           onPress={() => setSelectedTag(null)}
           style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
@@ -186,7 +186,7 @@ export default function Tasks() {
             <Text style={{ fontSize: 12, color: selectedTag === tag ? '#0EA5E9' : '#8E9BAB', fontWeight: '600' }}>🏷 {tag}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Approve all banner (parent only, when tasks pending approval) */}
       {isParent && pendingApprovalCount > 0 && (
@@ -206,7 +206,7 @@ export default function Tasks() {
         </View>
       )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {isLoading ? (
           <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <ActivityIndicator color="#0EA5E9" />
