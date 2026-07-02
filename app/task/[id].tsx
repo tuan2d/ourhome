@@ -117,16 +117,18 @@ export default function TaskDetail() {
         >
           <Text style={{ fontSize: 18 }}>←</Text>
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: 18, fontWeight: '800', color: '#2D3A4A' }}>Chi tiết việc</Text>
-        {isParent && dirty && (
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: '800', color: '#2D3A4A' }}>
+          {isParent ? 'Chỉnh sửa việc' : 'Chi tiết việc'}
+        </Text>
+        {isParent && (
           <TouchableOpacity
             onPress={handleSave}
-            disabled={updateMutation.isPending}
-            style={{ backgroundColor: '#0EA5E9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 }}
+            disabled={updateMutation.isPending || !dirty}
+            style={{ backgroundColor: dirty ? '#0EA5E9' : '#E0F2FE', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 }}
           >
             {updateMutation.isPending
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Lưu</Text>}
+              : <Text style={{ color: dirty ? '#fff' : '#93C5FD', fontWeight: '700', fontSize: 14 }}>Lưu</Text>}
           </TouchableOpacity>
         )}
       </View>
