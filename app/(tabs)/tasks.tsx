@@ -157,40 +157,36 @@ export default function Tasks() {
       </View>
 
       {/* Status filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-2" style={{ flexGrow: 0 }}>
-        <View className="flex-row gap-2">
-          {STATUS_FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f}
-              onPress={() => setStatusFilter(f)}
-              className={`px-4 py-2 rounded-full border ${statusFilter === f ? 'bg-accent border-accent' : 'bg-surface border-border'}`}
-            >
-              <Text className={`text-xs font-semibold ${statusFilter === f ? 'text-white' : 'text-muted'}`}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+        {STATUS_FILTERS.map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setStatusFilter(f)}
+            style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: statusFilter === f ? '#0EA5E9' : '#FFFFFF', borderWidth: 1, borderColor: statusFilter === f ? '#0EA5E9' : '#EDE8E1' }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '600', color: statusFilter === f ? '#FFFFFF' : '#8E9BAB' }}>{f}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Tag filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-3" style={{ flexGrow: 0 }}>
-        <View className="flex-row gap-2">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+        <TouchableOpacity
+          onPress={() => setSelectedTag(null)}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
+        >
+          <Text style={{ fontSize: 12, color: selectedTag === null ? '#FFFFFF' : '#8E9BAB', fontWeight: '600' }}>Tất cả tag</Text>
+        </TouchableOpacity>
+        {allTags.map((tag) => (
           <TouchableOpacity
-            onPress={() => setSelectedTag(null)}
-            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
+            key={tag}
+            onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === tag ? '#E0F2FE' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === tag ? '#0EA5E9' : '#EDE8E1' }}
           >
-            <Text style={{ fontSize: 12, color: selectedTag === null ? '#FFFFFF' : '#8E9BAB', fontWeight: '600' }}>Tất cả tag</Text>
+            <Text style={{ fontSize: 12, color: selectedTag === tag ? '#0EA5E9' : '#8E9BAB', fontWeight: '600' }}>🏷 {tag}</Text>
           </TouchableOpacity>
-          {allTags.map((tag) => (
-            <TouchableOpacity
-              key={tag}
-              onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
-              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === tag ? '#E0F2FE' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === tag ? '#0EA5E9' : '#EDE8E1' }}
-            >
-              <Text style={{ fontSize: 12, color: selectedTag === tag ? '#0EA5E9' : '#8E9BAB', fontWeight: '600' }}>🏷 {tag}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+        ))}
+      </View>
 
       {/* Approve all banner (parent only, when tasks pending approval) */}
       {isParent && pendingApprovalCount > 0 && (
