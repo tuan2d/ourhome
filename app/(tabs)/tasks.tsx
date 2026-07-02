@@ -157,7 +157,7 @@ export default function Tasks() {
       </View>
 
       {/* Status filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ minHeight: 40 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 44 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
         {STATUS_FILTERS.map((f) => (
           <TouchableOpacity
             key={f}
@@ -170,7 +170,7 @@ export default function Tasks() {
       </ScrollView>
 
       {/* Tag filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ minHeight: 36 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 40, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity
           onPress={() => setSelectedTag(null)}
           style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
