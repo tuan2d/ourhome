@@ -10,7 +10,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { DEFAULT_TAGS } from '../../constants/mockData';
 import { AddTaskModal } from '../../components/AddTaskModal';
 
-const STATUS_FILTERS = ['Tất cả', 'Chờ hoàn thành', 'Đã xong', 'Hết hạn'] as const;
+const STATUS_FILTERS = ['Tất cả', 'Chưa xong', 'Đã xong', 'Hết hạn'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function Tasks() {
@@ -105,7 +105,7 @@ export default function Tasks() {
 
   const filtered = allTasks.filter((t) => {
     const matchStatus =
-      statusFilter === 'Chờ hoàn thành' ? t.status === 'pending' :
+      statusFilter === 'Chưa xong' ? t.status === 'pending' :
       statusFilter === 'Đã xong' ? (t.status === 'done' || t.status === 'approved') :
       statusFilter === 'Hết hạn' ? t.status === 'expired' : true;
     const matchTag = selectedTag ? t.tags.includes(selectedTag) : true;
@@ -352,7 +352,7 @@ function MemberFilter({ members, selected, onChange, currentUserId }: {
   const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
       {members.map((m) => {
         const active = selected.includes(m.id);
         const isSelf = m.id === currentUserId;

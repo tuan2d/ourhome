@@ -97,7 +97,7 @@ export default function Schedule() {
 
       {/* Member filter — all members including currentUser */}
       {filterableMembers.length > 1 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 8, flexDirection: 'row' }}>
           {filterableMembers.map((m) => {
             const active = selectedMemberIds.includes(m.id);
             return (
