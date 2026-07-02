@@ -165,8 +165,7 @@ export default function TaskEdit() {
     mutationFn: (patch: Parameters<typeof api.task.update>[1]) => api.task.update(id!, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      setDirty(false);
-      Alert.alert('Đã lưu', 'Cập nhật việc thành công.');
+      router.back();
     },
     onError: (e: Error) => Alert.alert('Lỗi', e.message),
   });
