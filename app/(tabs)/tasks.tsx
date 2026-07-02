@@ -123,90 +123,93 @@ export default function Tasks() {
 
   return (
     <SafeAreaView className="flex-1 bg-cream" edges={['top']}>
-      {/* Header */}
-      <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
-        <View>
-          <Text className="text-2xl font-bold text-brand">Việc cần hoàn thành</Text>
-        </View>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 18 }}>⚙️</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Member filter (parent only) */}
-      {isParent && members.length > 0 && (
-        <MemberFilter members={members} selected={selectedMemberIds} onChange={setSelectedMembers} currentUserId={currentUser.id} />
-      )}
-
-      {/* Progress card */}
-      <View className="mx-4 mb-3 bg-accent rounded-3xl p-4">
-        <View className="flex-row items-center justify-between mb-3">
+      {/* Fixed header section — flexShrink:0 prevents any squeezing */}
+      <View style={{ flexShrink: 0 }}>
+        {/* Header */}
+        <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
           <View>
-            <Text className="text-white/70 text-xs">
-              {targetMemberNames.join(' · ') || 'Tiến độ hôm nay'}
+            <Text className="text-2xl font-bold text-brand">Việc cần hoàn thành</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EDE8E1', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 18 }}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Member filter (parent only) */}
+        {isParent && members.length > 0 && (
+          <MemberFilter members={members} selected={selectedMemberIds} onChange={setSelectedMembers} currentUserId={currentUser.id} />
+        )}
+
+        {/* Progress card */}
+        <View className="mx-4 mb-3 bg-accent rounded-3xl p-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <View>
+              <Text className="text-white/70 text-xs">
+                {targetMemberNames.join(' · ') || 'Tiến độ hôm nay'}
+              </Text>
+              <Text className="text-white text-2xl font-bold mt-1">{done}/{allTasks.length} việc</Text>
+            </View>
+            <View className="w-16 h-16 rounded-full border-4 border-white/30 items-center justify-center">
+              <Text className="text-white font-bold text-lg">{pct}%</Text>
+            </View>
+          </View>
+          <View className="h-1.5 bg-white/30 rounded-full overflow-hidden">
+            <View className="h-full bg-white rounded-full" style={{ width: `${pct}%` }} />
+          </View>
+        </View>
+
+        {/* Status filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 44 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
+          {STATUS_FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setStatusFilter(f)}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: statusFilter === f ? '#0EA5E9' : '#FFFFFF', borderWidth: 1, borderColor: statusFilter === f ? '#0EA5E9' : '#EDE8E1' }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '600', color: statusFilter === f ? '#FFFFFF' : '#8E9BAB' }}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Tag filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 40, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => setSelectedTag(null)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
+          >
+            <Text style={{ fontSize: 12, color: selectedTag === null ? '#FFFFFF' : '#8E9BAB', fontWeight: '600' }}>Tất cả tag</Text>
+          </TouchableOpacity>
+          {allTags.map((tag) => (
+            <TouchableOpacity
+              key={tag}
+              onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === tag ? '#E0F2FE' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === tag ? '#0EA5E9' : '#EDE8E1' }}
+            >
+              <Text style={{ fontSize: 12, color: selectedTag === tag ? '#0EA5E9' : '#8E9BAB', fontWeight: '600' }}>🏷 {tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Approve all banner (parent only, when tasks pending approval) */}
+        {isParent && pendingApprovalCount > 0 && (
+          <View style={{ marginHorizontal: 16, marginBottom: 8, backgroundColor: '#F0FDF4', borderRadius: 16, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 }}>
+            <Text style={{ flex: 1, fontSize: 13, color: '#16A34A', fontWeight: '600' }}>
+              {pendingApprovalCount} việc chờ duyệt
             </Text>
-            <Text className="text-white text-2xl font-bold mt-1">{done}/{allTasks.length} việc</Text>
+            <TouchableOpacity
+              onPress={() => approveAllMutation.mutate()}
+              disabled={approveAllMutation.isPending}
+              style={{ backgroundColor: '#16A34A', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 }}
+            >
+              {approveAllMutation.isPending
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>Duyệt tất cả</Text>}
+            </TouchableOpacity>
           </View>
-          <View className="w-16 h-16 rounded-full border-4 border-white/30 items-center justify-center">
-            <Text className="text-white font-bold text-lg">{pct}%</Text>
-          </View>
-        </View>
-        <View className="h-1.5 bg-white/30 rounded-full overflow-hidden">
-          <View className="h-full bg-white rounded-full" style={{ width: `${pct}%` }} />
-        </View>
+        )}
       </View>
 
-      {/* Status filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 44 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
-        {STATUS_FILTERS.map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setStatusFilter(f)}
-            style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: statusFilter === f ? '#0EA5E9' : '#FFFFFF', borderWidth: 1, borderColor: statusFilter === f ? '#0EA5E9' : '#EDE8E1' }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '600', color: statusFilter === f ? '#FFFFFF' : '#8E9BAB' }}>{f}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Tag filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 40, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity
-          onPress={() => setSelectedTag(null)}
-          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === null ? '#2D3A4A' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === null ? '#2D3A4A' : '#EDE8E1' }}
-        >
-          <Text style={{ fontSize: 12, color: selectedTag === null ? '#FFFFFF' : '#8E9BAB', fontWeight: '600' }}>Tất cả tag</Text>
-        </TouchableOpacity>
-        {allTags.map((tag) => (
-          <TouchableOpacity
-            key={tag}
-            onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
-            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: selectedTag === tag ? '#E0F2FE' : '#FFFFFF', borderWidth: 1, borderColor: selectedTag === tag ? '#0EA5E9' : '#EDE8E1' }}
-          >
-            <Text style={{ fontSize: 12, color: selectedTag === tag ? '#0EA5E9' : '#8E9BAB', fontWeight: '600' }}>🏷 {tag}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Approve all banner (parent only, when tasks pending approval) */}
-      {isParent && pendingApprovalCount > 0 && (
-        <View style={{ marginHorizontal: 16, marginBottom: 8, backgroundColor: '#F0FDF4', borderRadius: 16, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 }}>
-          <Text style={{ flex: 1, fontSize: 13, color: '#16A34A', fontWeight: '600' }}>
-            {pendingApprovalCount} việc chờ duyệt
-          </Text>
-          <TouchableOpacity
-            onPress={() => approveAllMutation.mutate()}
-            disabled={approveAllMutation.isPending}
-            style={{ backgroundColor: '#16A34A', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 }}
-          >
-            {approveAllMutation.isPending
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>Duyệt tất cả</Text>}
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {isLoading ? (
           <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <ActivityIndicator color="#0EA5E9" />
