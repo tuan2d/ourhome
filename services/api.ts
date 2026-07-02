@@ -69,7 +69,7 @@ export function createApi(getToken: () => Promise<string | null>) {
         repeat?: string | null;
       }) => apiFetch<ApiTask[]>('/api/tasks', { method: 'POST', body: JSON.stringify(data) }),
 
-      update: (id: string, patch: Partial<{ title: string; note: string; tags: string[]; points: number; dueDate: string }>) =>
+      update: (id: string, patch: Partial<{ title: string; note: string; tags: string[]; points: number; dueDate: string; assignedTo: string }>) =>
         apiFetch<ApiTask>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
       complete: (id: string) =>

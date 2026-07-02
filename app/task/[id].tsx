@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useApi, type ApiTaskRow } from '../../services/api';
+import { useApi, type ApiTaskRow, type ApiMember } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { DEFAULT_TAGS } from '../../constants/mockData';
 
@@ -123,10 +123,18 @@ export default function TaskEdit() {
   const { currentUser } = useAppStore();
   const isParent = currentUser?.role === 'parent';
 
+  const { familyId } = useAppStore();
+
   const { data: taskRows = [], isLoading } = useQuery<ApiTaskRow[]>({
     queryKey: ['tasks'],
     queryFn: () => api.task.list(),
     enabled: !!currentUser,
+  });
+
+  const { data: members = [] } = useQuery<ApiMember[]>({
+    queryKey: ['members', familyId],
+    queryFn: () => api.family.members(familyId!),
+    enabled: !!familyId,
   });
 
   const row = taskRows.find((r) => r.task.id === id);
@@ -138,6 +146,7 @@ export default function TaskEdit() {
   const [tags, setTags] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [assignedTo, setAssignedTo] = useState('');
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -147,6 +156,7 @@ export default function TaskEdit() {
       setPoints(task.points > 0 ? String(task.points) : '');
       setTags(task.tags ?? []);
       setDueDate(task.dueDate ? new Date(task.dueDate) : null);
+      setAssignedTo(task.assignedTo);
       setDirty(false);
     }
   }, [task?.id]);
@@ -169,6 +179,7 @@ export default function TaskEdit() {
       points: points ? Number(points) : 0,
       tags,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
+      assignedTo,
     });
   };
 
@@ -228,6 +239,31 @@ export default function TaskEdit() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}>
+
+          {/* Assignee */}
+          {isParent && members.length > 0 && (
+            <View style={{ marginBottom: 14 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#B0BAC7', letterSpacing: 0.5, marginBottom: 8 }}>GIAO CHO</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {members.map((m) => {
+                  const active = assignedTo === m.id;
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      onPress={() => { setAssignedTo(m.id); setDirty(true); }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, backgroundColor: active ? '#E0F2FE' : '#FFFFFF', borderWidth: 1.5, borderColor: active ? '#0EA5E9' : '#EDE8E1' }}
+                    >
+                      <Text style={{ fontSize: 16 }}>{m.avatar}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#0EA5E9' : '#8E9BAB' }}>
+                        {m.id === currentUser?.id ? `${m.name} (Tôi)` : m.name}
+                      </Text>
+                      {active && <Text style={{ fontSize: 10, color: '#0EA5E9', fontWeight: '700' }}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Tags */}
           <View style={{ marginBottom: 14 }}>
